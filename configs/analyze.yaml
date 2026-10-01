@@ -1,0 +1,75 @@
+# Find completed simulator runs by teacher/student model names and dataset.
+defaults:
+  - model_list
+  - _self_
+  - override hydra/job_logging: stdout
+
+paths:
+  root_dir: ${project_root:}
+  output_dir: output/from_analyze_simulation_result
+  simulation_dir: output/from_tutoring_simulator
+  cache_dir: /home/cache_dir
+  input_dir: input
+  # Optional relocated dataset; its fingerprint must match every selected run.
+  dataset_file: null
+  huggingface_access_token_file: null
+  api_key_file: null
+
+run:
+  id: eval-001
+  resume: false
+  check_config: false
+
+evaluation:
+  teacher_model_names:
+    - gemma_3_12b_it
+    - qwen_2_5_14b_inst
+  student_model_names:
+    - gemma_3_1b_it
+    - llama3_2_1b_inst
+  target_data: gsm8k
+  # Latest valid completed run per teacher/student combination is selected.
+  # Optional exact paths override model-list discovery when nonempty.
+  run_dirs: []
+  # all / overinformative / answer_reachability_gain / teacher_judgment / report
+  stage: all
+  # Resume can repair failed measurements while reusing successful responses.
+  retry_failed: false
+  # model requires a common teacher instruction; unrestricted allows prompt experiments.
+  comparison_mode: model
+  seed: 1234
+  batch_size: 64
+  num_prev_steps: 1
+  write_excel: true
+  offline: false
+  # Student checkpoint and prompt come from each simulation manifest.
+  student_options:
+    cuda_visible_devices: "2"
+  checker:
+    name: gemma_3_27b_it
+    options:
+      cuda_visible_devices: "3"
+      # Includes the first checkpoint download (~55 GB for Gemma 3 27B).
+      startup_timeout: 7200
+
+# Student and checker stages run sequentially and can reuse the same GPU(s).
+vllm:
+  system_prompt_mode: auto
+  startup_timeout: 600
+  request_timeout: 600
+  shutdown_timeout: 30
+  engine_kwargs:
+    tensor_parallel_size: 1
+    gpu_memory_utilization: 0.9
+    max_model_len: 32768
+    dtype: auto
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: .
+  output_subdir: null
+  sweep:
+    dir: ${project_path:${paths.root_dir},${paths.output_dir}}/hydra_multirun/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}

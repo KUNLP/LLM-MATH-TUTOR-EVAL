@@ -1,0 +1,8 @@
+# @package _global_
+# Both roles use the API; no torch/vLLM runtime is needed.
+test_args:
+  teacher: gpt-4.1
+  student: gpt-4.1-mini
+
+api:
+  mode: responses

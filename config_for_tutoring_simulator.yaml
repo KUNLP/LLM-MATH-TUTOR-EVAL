@@ -1,0 +1,82 @@
+# Set experiment once (for example mixed) to run with no command-line overrides.
+defaults:
+  - model_list
+  - _self_
+  - experiment: null
+  - override hydra/job_logging: stdout
+
+# Relative paths use the project directory, regardless of the invocation directory.
+# Input data is not copied from ORIG.
+paths:
+  root_dir: ${project_root:}
+  cache_dir: /home/cache_dir
+  input_dir: input
+  output_dir: output
+  dataset_file: null
+  huggingface_access_token_file: null
+  api_key_file: /home/api_key.txt
+
+run:
+  id: null
+  resume: false
+  check_config: false
+
+test_args:
+  seed: 1234
+  # off: generate per run; reuse: share compatible first answers; refresh: replace them.
+  initial_response_mode: "off"
+  student:
+    name: gemma_3_4b_it
+    options:
+      cuda_visible_devices: "1"
+  teacher:
+    name: qwen_2_5_7b_inst
+    options:
+      cuda_visible_devices: "0"
+  target_data: gsm8k
+  # Number of teacher hints followed by a student attempt; initial attempt is free.
+  max_feedback_count: 10
+  batch_size: 64
+  # Keep a final teacher response for later teacher-judgment evaluation.
+  collect_final_teacher_response: true
+  offline: false
+  debug: false
+  limit: null
+
+vllm:
+  # Local roles require explicit, disjoint GPU lists in their resolved options.
+  # Each selected GPU holds one complete model replica (data parallelism).
+  # A role's options.cuda_visible_devices overrides this common fallback.
+  cuda_visible_devices: null
+  system_prompt_mode: auto
+  startup_timeout: 600
+  request_timeout: 600
+  shutdown_timeout: 30
+  engine_kwargs:
+    # Every data-parallel replica runs on one GPU; tensor parallelism stays 1.
+    tensor_parallel_size: 1
+    gpu_memory_utilization: 0.9
+    max_model_len: 32768
+    dtype: auto
+
+api:
+  # Set either role to gpt-4.1-mini or another registered API model.
+  mode: responses  # responses / batch
+  api_key_env: OPENAI_API_KEY
+  max_concurrency: 8
+  timeout: 120
+  max_retries: 3
+  poll_interval: 10
+  batch_timeout: 90000
+
+# The simulator's manifest stores the resolved configuration for each run.
+# Avoid a second config/log directory during ordinary runs and config checks.
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: .
+  output_subdir: null
+  sweep:
+    dir: ${project_path:${paths.root_dir},${paths.output_dir}}/hydra_multirun/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}

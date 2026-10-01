@@ -1,0 +1,16 @@
+# @package _global_
+# Set OPENAI_API_KEY in the environment; local student replicas use GPUs 0,1.
+test_args:
+  teacher: gpt-4.1-mini
+  student:
+    # gemma_3_1b_it, gemma_3_4b_it, llama3_2_1b_inst, llama3_2_3b_inst
+    name: gemma_3_1b_it
+    options:
+      cuda_visible_devices: "0,1"
+
+vllm:
+  engine_kwargs:
+    tensor_parallel_size: 1
+
+api:
+  mode: responses

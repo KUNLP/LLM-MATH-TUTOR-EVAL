@@ -1,0 +1,18 @@
+# @package _global_
+# Two teacher replicas on GPUs 0,1; two student replicas on GPUs 2,3.
+# Every complete model replica must fit on one GPU; all remain resident.
+test_args:
+  teacher:
+    # qwen_2_5_14b_inst, gemma_3_12b_it
+    name: gemma_3_12b_it
+    options:
+      cuda_visible_devices: "2"
+      engine_kwargs:
+        tensor_parallel_size: 1
+  student:
+    # gemma_3_1b_it, gemma_3_4b_it, llama3_2_1b_inst, llama3_2_3b_inst
+    name: llama3_2_1b_inst
+    options:
+      cuda_visible_devices: "3"
+      engine_kwargs:
+        tensor_parallel_size: 1
